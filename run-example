@@ -10,7 +10,7 @@ fi
 TARGET="$1"
 shift
 
-ARTIFACT=make-segment-ref
+ARTIFACT=cleanup-ir
 
 cd "/demo/$TARGET"
 clang-16 -fno-stack-protector source.c -o binary $(cat flags)
