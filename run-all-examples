@@ -4,7 +4,9 @@ set -euo pipefail
 
 cd /demo
 
-for EXAMPLE in $(find -mindepth 1 -maxdepth 1 -type d -not -name ".*"); do
+for EXAMPLE in $(find -mindepth 1 -maxdepth 1 -type d -regex '\./[0-9]+-.*'); do
     echo "Running example $EXAMPLE" >&2
-    ./run-example "$EXAMPLE"
+    pushd "$EXAMPLE" >& /dev/null
+    ./run
+    popd
 done
