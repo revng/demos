@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 set -euo pipefail
+
+cd "$SCRIPT_DIR"
 
 # An empty model is a valid model
 revng model opt /dev/null -verify -Y
@@ -11,94 +15,20 @@ printf '\x48\x01\xf7\x48\x89\xf8\xc3\x90' > sum
 # Disassemble the program above
 objdump -D -Mintel,x86-64 -b binary -m i386:x86-64 sum
 
-# Create a model with some basic information
-cat > model.yml <<EOF
-Architecture: x86_64
-DefaultABI: SystemV_x86_64
-EOF
-
-# Add segments and functions
-cat >> model.yml <<EOF
-Segments:
-  - StartOffset: 0
-    FileSize: 7
-    StartAddress: "0x400000:Generic64"
-    VirtualSize: 7
-    IsReadable: true
-    IsWriteable: false
-    IsExecutable: true
-Functions:
-  - Entry: "0x400000:Code_x86_64"
-EOF
-
 # Disassemble using rev.ng
-revng artifact disassemble sum --model model.yml | revng ptml --color
+revng artifact disassemble sum --model model-1.yml | revng ptml --color
 
-# Add primitive types
-revng analyze add-primitive-types -m model.yml /dev/null | grep -v '\.\.\.' > model-2.yml
-mv model{-2,}.yml
-
-# Add the prototype of the function
-cat >> model.yml <<EOF
-  - Kind: CABIFunctionType
-    ABI: SystemV_x86_64
-    ID: 1809
-    Arguments:
-      - Index: 0
-        Type:
-          UnqualifiedType: "/Types/1288-PrimitiveType"
-      - Index: 1
-        Type:
-          UnqualifiedType: "/Types/1288-PrimitiveType"
-    ReturnType:
-      UnqualifiedType: "/Types/1288-PrimitiveType"
-EOF
-
-# Add a reference to the prototype
-patch -p1 <<EOF
---- a/model.yml
-+++ b/model.yml
-@@ -11,6 +11,7 @@
-     IsExecutable:    true
- Functions:
-   - Entry:           "0x400000:Code_x86_64"
-+    Prototype: "/Types/1809-CABIFunctionType"
- Types:
-   - ID:              256
-     Kind:            PrimitiveType
-
-EOF
+# Show differences between model versions
+git diff --no-index model-1.yml model-2.yml | cat || true
 
 # Decompile the program
-revng artifact decompile sum --model model.yml | revng ptml --color
+revng artifact decompile sum --model model-2.yml | revng ptml --color
 
-patch -p1 <<EOF
---- a/model.yml
-+++ b/model.yml
-@@ -12,6 +12,7 @@ Segments:
- Functions:
-   - Entry:           "0x400000:Code_x86_64"
-     Prototype: "/Types/1809-CABIFunctionType"
-+    CustomName: sum
- Types:
-   - ID:              256
-     Kind:            PrimitiveType
-@@ -154,9 +155,11 @@ Types:
-     ID: 1809
-     Arguments:
-       - Index: 0
-+        CustomName: first_addend
-         Type:
-           UnqualifiedType: "/Types/1288-PrimitiveType"
-       - Index: 1
-+        CustomName: second_addend
-         Type:
-           UnqualifiedType: "/Types/1288-PrimitiveType"
-     ReturnType:
-EOF
+# Show differences between model versions
+git diff --no-index model-2.yml model-3.yml | cat || true
 
 # Decompile again
-revng artifact decompile sum --model model.yml | revng ptml --color
+revng artifact decompile sum --model model-3.yml | revng ptml --color
 
 # Create a simple C program
 cat > example.c <<EOF
@@ -109,6 +39,9 @@ EOF
 
 # Compile it to an ELF executable
 gcc example.c -o example -O2
+
+# Run the "import-binary" analysis
+revng analyze import-binary example -o /dev/null
 
 # Decompile using renvg analyses
 revng artifact --analyze decompile-to-single-file example | revng ptml | grep -A2 -B1 '\bmain\b'
