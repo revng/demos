@@ -17,5 +17,5 @@ To run an individual demo:
 ```
 podman build -t revng-demo .
 ./container
-/demo/run-example stack-o0
+/demo/1-model/run
 ```
