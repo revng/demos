@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+set -euo pipefail
+
+cd "$SCRIPT_DIR"
+
+clang-16 -fno-stack-protector source.c -o binary
+
+rm -rf resume/
+revng \
+    artifact \
+    --enable-remote-debug-info \
+    "cleanup-ir" \
+    --analyze \
+    binary \
+    --resume resume \
+    -o /dev/null \
+    --progress

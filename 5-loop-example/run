@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+set -euo pipefail
+
+cd "$SCRIPT_DIR"
+
+clang-16 -O2 -fno-stack-protector -fno-unroll-loops source.c -o binary
+
+rm -rf resume/
+revng \
+    artifact \
+    --enable-remote-debug-info \
+    "cleanup-ir" \
+    --analyze \
+    binary \
+    --resume resume \
+    -o /dev/null \
+    --progress
+
+g++ \
+    -o "analysis/libLoopInfo.so" \
+    -fPIC \
+    -shared \
+    -O2 \
+    analysis/LoopInfo.cpp \
+    $(llvm-config-16 --cxxflags --ldflags) \
+    -g
+
+opt-16 \
+    -load-pass-plugin="analysis/libLoopInfo.so" \
+    -passes="LoopInfo" \
+    resume/cleanup-ir/module.ll \
+    -o /dev/null
