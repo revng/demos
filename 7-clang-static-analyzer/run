@@ -10,6 +10,6 @@ gcc -O2 -fno-stack-protector -fno-optimize-sibling-calls use-after-free.c -o use
 revng artifact --debug-names emit-recompilable-archive --analyze use-after-free.bin -o - | tar xfz -
 
 # Invoke clang-static-analyzer on the decompiled C code
-clang-16 -o /dev/null -c decompiled/functions.c --analyze -ffreestanding \
+clang-16 -Wno-int-conversion -o /dev/null -c decompiled/functions.c --analyze -ffreestanding \
   -Xanalyzer -analyzer-disable-checker -Xanalyzer deadcode \
   -Xanalyzer -analyzer-output=html -o clang-static-analyzer-results
