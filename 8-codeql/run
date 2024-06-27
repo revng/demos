@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 set -euo pipefail
+
+cd "$SCRIPT_DIR"
 
 # Compile to binary, with optimizations, but disabling stack protector and
 # optimizations around tail calls, to ease source-to-binary matching for demo
