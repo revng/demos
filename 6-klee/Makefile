@@ -2,7 +2,7 @@ use-after-free.bin: use-after-free.c
 	gcc -O2 -fno-stack-protector -fno-optimize-sibling-calls use-after-free.c -o use-after-free.bin
 
 use-after-free.ll: use-after-free.bin
-	revng artifact cleanup-ir --analyze --progress use-after-free.bin -o use-after-free.ll
+	revng artifact cleanup-ir --analyze --debug-names --progress use-after-free.bin -o use-after-free.ll
 
 cfg.dot: use-after-free.ll
 	opt-16 -passes=dot-cfg use-after-free.ll
