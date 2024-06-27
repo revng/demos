@@ -15,6 +15,7 @@ revng \
     "cleanup-ir" \
     --analyze \
     binary \
+    --debug-names \
     --resume resume \
     -o /dev/null \
     --progress
