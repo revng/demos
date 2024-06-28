@@ -1,6 +1,6 @@
 FROM docker.io/library/ubuntu:22.04
 
-ARG REVNG_BRANCH=feature-demo-recon
+ARG REVNG_BRANCH=master
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
