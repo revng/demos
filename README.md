@@ -2,7 +2,7 @@
 
 This repository contains a couple of rev.ng demos.
 
-Check out the subdirectories.
+Check out the subdirectories, each of them contains a brief description.
 
 ## How to run all demos
 

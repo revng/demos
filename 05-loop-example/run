@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+"${CLANG}" -O2 -fno-stack-protector -fno-unroll-loops source.c -o binary
+
+rm -rf resume/
+revng \
+    artifact \
+    --enable-remote-debug-info \
+    "cleanup-ir" \
+    --analyze \
+    binary \
+    --resume resume \
+    -o /dev/null \
+    --progress
+
+g++ \
+    -o "analysis/libLoopInfo.so" \
+    -fPIC \
+    -shared \
+    -O2 \
+    analysis/LoopInfo.cpp \
+    $("${LLVM_CONFIG}" --cxxflags --ldflags) \
+    -g
+
+zstdcat resume/cleanup-ir/module.bc.zstd | \
+    "${OPT}" \
+    -load-pass-plugin="analysis/libLoopInfo.so" \
+    -passes="LoopInfo" \
+    -o /dev/null

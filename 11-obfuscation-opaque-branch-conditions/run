@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+RESUME_DIRECTORY="resume-directory"
+BINARY="add-or-shift"
+
+# Produce assembly
+gcc -masm=intel -O1 -fno-inline -fno-asynchronous-unwind-tables -fno-exceptions -no-pie "${BINARY}".c -nostdlib -S -o "${BINARY}".S
+
+# Compile
+gcc -O1 -fno-inline -no-pie "${BINARY}".c -nostdlib -o "${BINARY}"
+FUNCTION="local_0x$(address_of "${BINARY}" add_or_shift):Code_x86_64"
+
+# Lift the binary with revng
+rm -rf "${RESUME_DIRECTORY}"
+revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
+
+function extract_the_function() {
+  # extract the function we want
+  extract_llvm_function "${FUNCTION}" | \
+  # remove noisy stuff to make the output more terse for demo purpose
+  # all the cleanup below here can be skipped
+  pretty_llvm | \
+  grep -v newFuncRoot:
+}
+
+# Extract the cleaned up LLVM IR.
+# At this stage the obfuscation is still present
+zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
+  extract_the_function > obfuscated.ll
+
+# Apply -O2 optimization pipeline.
+# This triggers inlining, constant propagation, and CFG simplification to remove
+# dead branches, resulting in deobfuscated code.
+zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
+  # run O2 optimization pipeline, to deobfuscate the branch
+  "${OPT}" -O2 | \
+  extract_the_function > deobfuscated.ll
+
+echo ""
+echo "=========="
+echo "Obfuscated"
+echo "=========="
+echo ""
+cat obfuscated.ll
+
+echo ""
+echo "=========="
+echo "Deobfuscated"
+echo "=========="
+echo ""
+cat deobfuscated.ll

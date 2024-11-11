@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+RESUME_DIRECTORY="resume-directory"
+BINARY="calc-x86-64-static"
+
+# Get the example binary
+rm -rf "${BINARY}"
+wget https://rev.ng/downloads/"${BINARY}"
+
+# Lift the binary with revng
+rm -rf "${RESUME_DIRECTORY}"
+revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
+
+# Build the CFG flattening pass
+g++ \
+    -o "analysis/libCFGFlatteningPass.so" \
+    -fPIC \
+    -shared \
+    -O2 \
+    analysis/CFGFlatteningPass.cpp \
+    $("${LLVM_CONFIG}" --cxxflags --ldflags) \
+    -g
+
+# Extract only the function we want to look at for the demo.
+# For a simpler one use --func="local_0x404050:Code_x86_64"
+# For a larger one use --func="local_0x401fb3:Code_x86_64"
+zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
+  "${LLVM_EXTRACT}" --func="local_0x401185:Code_x86_64" | \
+  "${OPT}" -passes=strip -S -o original.ll
+
+"${OPT}" original.ll \
+         -load="analysis/libCFGFlatteningPass.so" \
+         -enable-new-pm=false --flatten-cfg \
+         -S -o flattened.ll
+
+"${OPT}" flattened.ll \
+         --enable-new-pm=false \
+         --jump-threading \
+         --jump-threading-across-loop-headers \
+         -o unflattened.ll

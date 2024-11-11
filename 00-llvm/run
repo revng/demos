@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+"${CLANG}" \
+    -Xclang -disable-O0-optnone \
+    -S \
+    -emit-llvm \
+    hello.c \
+    -o hello.ll
+
+echo ""
+echo "======="
+echo "Vanilla"
+echo "======="
+echo ""
+cat hello.ll | extract_llvm_function add_1_or_2 | pretty_llvm
+
+echo ""
+echo "========="
+echo "Optimized"
+echo "========="
+echo ""
+"${OPT}" -O2 hello.ll -S | extract_llvm_function add_1_or_2 | pretty_llvm

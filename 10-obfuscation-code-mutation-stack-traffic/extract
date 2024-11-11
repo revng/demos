@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+FUNCTION="$1"
+RESUME="$2"
+
+function extract() {
+  STEP="$1"
+  FUNC="$2"
+  zstdcat "${RESUME}"/"${STEP}"/module.bc.zstd | \
+    # Make very minimal cleanup on it with off-the-shelf LLVM passes
+    "${OPT}" --enable-new-pm=false -dse | \
+    # Extract the function we want
+    extract_llvm_function "$FUNC" | \
+    # Remove noisy stuff to make the output more terse for demo purpose
+    # all the cleanup below here can be skipped
+    pretty_llvm | \
+    grep -v newFuncRoot:
+}
+
+extract lift root > 1-lift.ll
+extract isolate "${FUNCTION}" > 2-isolate.ll
+extract enforce-abi "${FUNCTION}" > 3-enforce-abi.ll
+extract segregate-stack-accesses "${FUNCTION}" > 4-segregate-stack-accesses.ll
+extract cleanup-ir "${FUNCTION}" > 5-cleanup-ir.ll

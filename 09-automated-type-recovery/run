@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+# Compile to binary, with optimizations, but disabling stack protector and
+# optimizations around tail calls, to ease source-to-binary matching for demo.
+# Also disable loop unrolling to enable showing array recovery.
+"${CLANG}" -O2 -Wno-pointer-bool-conversion -fno-stack-protector -fno-optimize-sibling-calls -fno-unroll-loops linked-lists.c -o linked-lists.bin
+
+# Lift with revng generate all decompiled C code in a single tar.gz, and unpack it in a single directory
+# This DOES NOT include type recovery
+revng analyze revng-initial-auto-analysis --resume=resume-without-type-recovery -o /dev/null linked-lists.bin
+revng analyze detect-stack-size --resume=resume-without-type-recovery -o /dev/null linked-lists.bin
+revng analyze convert-functions-to-cabi --resume=resume-without-type-recovery -o /dev/null linked-lists.bin
+mkdir -p decompiled-without-type-recovery
+revng artifact emit-recompilable-archive --resume=resume-without-type-recovery linked-lists.bin -o - | tar xfz - -C decompiled-without-type-recovery
+
+# Lift with revng generate all decompiled C code in a single tar.gz, and unpack it in a single directory
+# This includes type recovery
+mkdir -p decompiled-with-type-recovery
+revng artifact emit-recompilable-archive --analyze linked-lists.bin -o - | tar xfz - -C decompiled-with-type-recovery

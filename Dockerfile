@@ -23,6 +23,7 @@ RUN apt-get update -y && \
       python3-pip \
       wget \
       zlib1g-dev \
+      zstd \
       && \
     python3 -m pip install --user lit && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \

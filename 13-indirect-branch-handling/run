@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+BINARY="switch-jump-table"
+
+# Compile the obfuscated assembly
+gcc -no-pie -masm=intel "${BINARY}".S -nostdlib -o "${BINARY}"
+
+JMP_ADDRESS=$(objdump -Mintel -d "${BINARY}" | grep jmp.*PTR | awk '{ print $1 }' | sed 's|:||')
+
+# Lift the binary with revng
+revng artifact lift -o /dev/null "${BINARY}" --analyze --dump-vm-at="0x$JMP_ADDRESS" |& tee output
+
+mv "$(grep -o /tmp/dfg-.*.dot output | head -n1)" dfg.dot
+mv "$(grep -o /tmp/cfeg-.*.dot output | head -n1)" cfeg.dot

@@ -4,9 +4,9 @@ set -euo pipefail
 
 cd /demo
 
-for EXAMPLE in $(find -mindepth 1 -maxdepth 1 -type d -regex '\./[0-9]+-.*'); do
+for EXAMPLE in $(find -mindepth 1 -maxdepth 1 -type d -regex '\./[0-9]+-.*' | sort); do
     echo "Running example $EXAMPLE" >&2
     pushd "$EXAMPLE" >& /dev/null
     ./run
-    popd
+    popd >& /dev/null
 done

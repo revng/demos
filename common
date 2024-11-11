@@ -1,0 +1,47 @@
+set -euo pipefail
+
+# If we're in an `orc shell`, use orchestra-provided clang
+if test -n "${ORCHESTRA_ROOT:-}"; then
+    CLANG="${ORCHESTRA_ROOT}/link-only/bin/clang"
+    LLVM_CONFIG="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/llvm-config"
+    LLVM_LINK="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/llvm-link"
+    OPT="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/opt"
+    LLVM_EXTRACT="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/llvm-extract"
+else
+    CLANG=clang-16
+    LLVM_CONFIG=llvm-config-16
+    LLVM_LINK=llvm-link-16
+    OPT=opt-16
+    LLVM_EXTRACT=llvm-extract-16
+fi
+
+function address_of() {
+    PROGRAM="$1"
+    FUNCTION="$2"
+    readelf -s "$PROGRAM" | grep '\b'"$FUNCTION"'\b' | awk '{ print $2 }' | sed 's/^0*//'
+}
+
+function extract_llvm_function() {
+  FUNCTION="$1"
+  # extract the function we want in text format
+  "${LLVM_EXTRACT}" --func="${FUNCTION}" -S | \
+  grep define -A 1000000 | \
+  grep -B 1000000 '^}'
+}
+
+function pretty_llvm() {
+  sed 's/, align.*//' | \
+  sed 's/\(define.*)\).*/\1 {/' | \
+  sed 's/, !dbg.*//' | \
+  sed 's/: *; preds.*/:/' | \
+  sed 's/ nsw//g' | \
+  sed 's/ dso_local//g' | \
+  sed 's/ noundef//g' | \
+  grep -v newpc
+}
+
+function extract_llvm_function_by_symbol_name() {
+  SYMBOL_NAME="$1"
+  BINARY="$2"
+  extract_llvm_function "local_0x"$(address_of "${BINARY}" "${SYMBOL_NAME}")":Code_x86_64"
+}

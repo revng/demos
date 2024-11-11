@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+"${CLANG}" -O2 -fno-stack-protector -fno-builtin source.c -o binary
+
+rm -rf resume/
+revng \
+    artifact \
+    --enable-remote-debug-info \
+    "cleanup-ir" \
+    --analyze \
+    binary \
+    --debug-names \
+    --resume resume \
+    --progress | \
+    zstdcat | \
+    "${OPT}" -S > module.ll
+
+g++ \
+    -o "analysis/libTaintAnalysis.so" \
+    -fPIC \
+    -shared \
+    -O2 \
+    analysis/TaintAnalysis.cpp \
+    $("${LLVM_CONFIG}" --cxxflags --ldflags) \
+    -g
+
+"${OPT}" \
+    -load-pass-plugin="analysis/libTaintAnalysis.so" \
+    -passes="TaintAnalysis" \
+    module.ll \
+    -o /dev/null
