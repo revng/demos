@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+FUNCTION="$1"
+RESUME="$2"
+
+function extract() {
+  STEP="$1"
+  FUNC="$2"
+  cat "${RESUME}"/"${STEP}"/module.ll | \
+    # unpack the IR
+    zstd -d | \
+    # make very minimal cleanup on it
+    revng opt --enable-new-pm=true -O0 | \
+    revng opt -sroa | \
+    revng opt -dse | \
+    revng opt -dce | \
+    # extract the function we want, and some of its surrounding
+    llvm-extract --func="$FUNC" -S | \
+    grep define -A 1000000 | grep -B 10000 '^}' | \
+    # remove noisy stuff to make the output more terse for demo purpose
+    # all the cleanup below here can be skipped
+    grep -v newFuncRoot: | \
+    sed 's/\(define.*)\).*/\1 {/' | \
+    sed 's/, align.*//' | \
+    sed 's/, !.*//' | \
+    sed 's|call .*newpc(.*"revng.const.\([^"]*\)".*).*|call @newpc("\1")|' |
+    sed 's/: *; preds.*/:/' | \
+    sed 's|, "\*m,~{.*||'
+}
+
+extract lift root > 1.ll
+extract isolate "${FUNCTION}" > 2.ll
+extract enforce-abi "${FUNCTION}" > 3.ll
+extract segregate-stack-accesses "${FUNCTION}" > 4.ll
+extract cleanup-ir "${FUNCTION}" > 5.ll
+
