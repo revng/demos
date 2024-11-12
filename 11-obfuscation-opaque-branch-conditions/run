@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+RESUME_DIRECTORY="resume-directory"
+BINARY="sum-or-add"
+FUNCTION="local_0x40033a:Code_x86_64"
+
+set -euo pipefail
+
+cd "$SCRIPT_DIR"
+
+# Compile the obfuscated assembly
+x86_64-linux-gnu-gcc "${BINARY}".c -nostdlib -o "${BINARY}"
+
+# Lift the binary with revng
+# revng artifact --debug-log=detect-stack-size --resume="${RESUME_DIRECTORY}" --analyze cleanup-ir -o /dev/null "${BINARY}"
+revng artifact cleanup-ir --debug-log=detect-stack-size --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
+
+# Extract the cleaned up LLVM IR.
+# At this stage the obfuscation is still present
+cat "${RESUME_DIRECTORY}"/cleanup-ir/module.ll | \
+  # unpack the IR
+  zstd -d | \
+  # extract the function we want, and some of its surrounding
+  llvm-extract --func="${FUNCTION}" -S | \
+  grep define -A 1000000 | grep -B 10000 '^}' | \
+  # remove noisy stuff to make the output more terse for demo purpose
+  # all the cleanup below here can be skipped
+  grep -v newFuncRoot: | \
+  sed 's/\(define.*)\).*/\1 {/' | \
+  sed 's/, align.*//' | \
+  sed 's/, !.*//' | \
+  sed 's|call .*newpc(.*"revng.const.\([^"]*\)".*).*|call @newpc("\1")|' |
+  sed 's/: *; preds.*/:/' | \
+  sed 's|, "\*m,~{.*||' \
+  > obfuscated.ll
+
+
+# Apply -O2 optimization pipeline.
+# This triggers inlining, constant propagation, and CFG simplification to remove
+# dead branches, resulting in deobfuscated code.
+cat "${RESUME_DIRECTORY}"/cleanup-ir/module.ll | \
+  # unpack the IR
+  zstd -d | \
+  # run O2 optimization pipeline, to deobfuscate the branch
+  revng opt --enable-new-pm=true -O2 | \
+  # extract the function we want, and some of its surrounding
+  llvm-extract --func="${FUNCTION}" -S | \
+  grep define -A 1000000 | grep -B 10000 '^}' | \
+  # remove noisy stuff to make the output more terse for demo purpose
+  # all the cleanup below here can be skipped
+  grep -v newFuncRoot: | \
+  sed 's/\(define.*)\).*/\1 {/' | \
+  sed 's/, align.*//' | \
+  sed 's/, !.*//' | \
+  sed 's|call .*newpc(.*"revng.const.\([^"]*\)".*).*|call @newpc("\1")|' |
+  sed 's/: *; preds.*/:/' | \
+  sed 's|, "\*m,~{.*||' \
+  > deobfuscated.ll
