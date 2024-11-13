@@ -19,3 +19,11 @@ revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}
 # dead code and bogus stack traffic is gradually optimized away by the default
 # revng decompilation pipeline.
 ./extract "local_0x$(address_of "${BINARY}" _start):Code_x86_64" "${RESUME_DIRECTORY}"
+
+echo ""
+echo "Obfuscated"
+cat 3-enforce-abi.ll
+
+echo ""
+echo "Debfuscated"
+cat 5-cleanup-ir.ll

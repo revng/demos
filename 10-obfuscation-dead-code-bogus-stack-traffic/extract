@@ -11,22 +11,18 @@ function extract() {
   FUNC="$2"
   zstdcat "${RESUME}"/"${STEP}"/module.bc.zstd | \
     # Make very minimal cleanup on it
-    revng opt --enable-new-pm=true -O0 | \
-    revng opt -sroa -dse -dce -simplifycfg -S  | \
-    # Remove calls to newpc
-    grep -v newpc | \
+    revng opt -sroa -dse -dce -simplifycfg | \
     # Extract the function we want, and some of its surrounding
     "${LLVM_EXTRACT}" --func="$FUNC" -S | \
-    grep define -A 1000000 | grep -B 10000 '^}' | \
+    grep define -A 10000 | grep -B 10000 '^}' | \
     # Remove noisy stuff to make the output more terse for demo purpose
     # all the cleanup below here can be skipped
+    grep -v newpc | \
     grep -v newFuncRoot: | \
     sed 's/\(define.*)\).*/\1 {/' | \
     sed 's/, align.*//' | \
     sed 's/, !.*//' | \
-    sed 's|call .*newpc(.*"revng.const.\([^"]*\)".*).*|call @newpc("\1")|' |
-    sed 's/: *; preds.*/:/' | \
-    sed 's|, "\*m,~{.*||'
+    sed 's/: *; preds.*/:/'
 }
 
 extract lift root > 1-lift.ll
