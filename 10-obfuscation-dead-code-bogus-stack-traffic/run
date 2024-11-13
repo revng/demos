@@ -12,6 +12,7 @@ BINARY="sum42"
 gcc -no-pie -masm=intel "${BINARY}".S -nostdlib -o "${BINARY}"
 
 # Lift the binary with revng
+rm -rf "${RESUME_DIRECTORY}"
 revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyze
 
 # Extract LLVM IR at different stages of the decompilation pipeline, to show the

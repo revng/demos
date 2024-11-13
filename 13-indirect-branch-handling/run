@@ -15,5 +15,5 @@ JMP_ADDRESS=$(objdump -Mintel -d "${BINARY}" | grep jmp.*PTR | awk '{ print $1 }
 # Lift the binary with revng
 revng artifact lift -o /dev/null "${BINARY}" --analyze --dump-vm-at="0x$JMP_ADDRESS" |& tee output
 
-mv "$(grep -o /tmp/dfg-.*.dot output | tail -n1)" dfg.dot
-mv "$(grep -o /tmp/cfeg-.*.dot output | tail -n1)" cfeg.dot
+mv "$(grep -o /tmp/dfg-.*.dot output | head -n1)" dfg.dot
+mv "$(grep -o /tmp/cfeg-.*.dot output | head -n1)" cfeg.dot

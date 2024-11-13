@@ -16,13 +16,14 @@ gcc -O1 -fno-inline -no-pie "${BINARY}".c -nostdlib -o "${BINARY}"
 FUNCTION="local_0x$(address_of add-or-shift add_or_shift):Code_x86_64"
 
 # Lift the binary with revng
+rm -rf "${RESUME_DIRECTORY}"
 revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
 
 # Extract the cleaned up LLVM IR.
 # At this stage the obfuscation is still present
 zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
   # extract the function we want, and some of its surrounding
-  llvm-extract --func="${FUNCTION}" -S | \
+  "${LLVM_EXTRACT}" --func="${FUNCTION}" -S | \
   grep define -A 1000000 | grep -B 10000 '^}' | \
   # remove noisy stuff to make the output more terse for demo purpose
   # all the cleanup below here can be skipped
@@ -43,7 +44,7 @@ zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
   # run O2 optimization pipeline, to deobfuscate the branch
   revng opt --enable-new-pm=true -O2 | \
   # extract the function we want, and some of its surrounding
-  llvm-extract --func="${FUNCTION}" -S | \
+  "${LLVM_EXTRACT}" --func="${FUNCTION}" -S | \
   grep define -A 1000000 | grep -B 10000 '^}' | \
   # remove noisy stuff to make the output more terse for demo purpose
   # all the cleanup below here can be skipped

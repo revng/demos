@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"
 gcc -O2 -fno-stack-protector -fno-optimize-sibling-calls use-after-free.c -o use-after-free.bin
 
 # Lift with revng and generate clean IR
-revng artifact cleanup-ir --analyze --debug-names use-after-free.bin -o use-after-free.ll
+revng artifact cleanup-ir --analyze --debug-names use-after-free.bin | zstdcat > use-after-free.ll
 
 # Dump the CFG for visualization
 "${OPT}" -passes=dot-cfg use-after-free.ll

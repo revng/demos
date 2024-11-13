@@ -5,7 +5,7 @@ source "${SCRIPT_DIR}/../common"
 
 cd "$SCRIPT_DIR"
 
-clang \
+"${CLANG}" \
     -Xclang -disable-O0-optnone \
     -S \
     -emit-llvm \
@@ -16,4 +16,4 @@ echo "Vanilla"
 cat hello.ll | pretty_llvm
 
 echo "Optimized"
-opt -O2 hello.ll -S | pretty_llvm
+"${OPT}" -O2 hello.ll -S | pretty_llvm

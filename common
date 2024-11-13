@@ -6,11 +6,13 @@ if test -n "${ORCHESTRA_ROOT:-}"; then
     LLVM_CONFIG="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/llvm-config"
     LLVM_LINK="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/llvm-link"
     OPT="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/opt"
+    LLVM_EXTRACT="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/llvm-extract"
 else
     CLANG=clang-16
     LLVM_CONFIG=llvm-config-16
     LLVM_LINK=llvm-link-16
     OPT=opt-16
+    LLVM_EXTRACT=llvm-extract-16
 fi
 
 function address_of() {

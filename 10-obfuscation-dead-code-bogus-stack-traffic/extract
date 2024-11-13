@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
 
 FUNCTION="$1"
 RESUME="$2"
@@ -15,7 +16,7 @@ function extract() {
     # Remove calls to newpc
     grep -v newpc | \
     # Extract the function we want, and some of its surrounding
-    llvm-extract --func="$FUNC" -S | \
+    "${LLVM_EXTRACT}" --func="$FUNC" -S | \
     grep define -A 1000000 | grep -B 10000 '^}' | \
     # Remove noisy stuff to make the output more terse for demo purpose
     # all the cleanup below here can be skipped
