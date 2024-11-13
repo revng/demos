@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+FUNCTION="local_make_http_request"
+
+rm -rf *flattened.ll
+
+# Build the CFG flattening pass
+g++ \
+    -o "analysis/libCFGFlatteningPass.so" \
+    -fPIC \
+    -shared \
+    -O2 \
+    analysis/CFGFlatteningPass.cpp \
+    $("${LLVM_CONFIG}" --cxxflags --ldflags) \
+    -g
+
+for I in $(seq 0 2) ; do
+  "${OPT}" function${I}.ll \
+           -load="analysis/libCFGFlatteningPass.so" \
+           -enable-new-pm=false --flatten-cfg \
+           -S -o function${I}-flattened.ll
+  "${OPT}" function${I}-flattened.ll \
+           --enable-new-pm=false \
+           --jump-threading \
+           --jump-threading-across-loop-headers \
+           --jump-threading-threshold=10000000 \
+           -o function${I}-unflattened.ll
+done
