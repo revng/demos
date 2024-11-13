@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
-set -euo pipefail
+source "${SCRIPT_DIR}/../common"
 
 cd "$SCRIPT_DIR"
 
-clang-16 -O2 -fno-stack-protector -fno-unroll-loops source.c -o binary
+"${CLANG}" -O2 -fno-stack-protector -fno-unroll-loops source.c -o binary
 
 rm -rf resume/
 revng \
@@ -25,11 +24,11 @@ g++ \
     -shared \
     -O2 \
     analysis/LoopInfo.cpp \
-    $(llvm-config-16 --cxxflags --ldflags) \
+    $("${LLVM_CONFIG}" --cxxflags --ldflags) \
     -g
 
-opt-16 \
+zstdcat resume/cleanup-ir/module.bc.zstd | \
+    "${OPT}" \
     -load-pass-plugin="analysis/libLoopInfo.so" \
     -passes="LoopInfo" \
-    resume/cleanup-ir/module.ll \
     -o /dev/null

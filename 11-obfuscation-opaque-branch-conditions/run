@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-RESUME_DIRECTORY="resume-directory"
-BINARY="sum-or-add"
-FUNCTION="local_0x40033a:Code_x86_64"
-
-set -euo pipefail
+source "${SCRIPT_DIR}/../common"
 
 cd "$SCRIPT_DIR"
 
-# Compile the obfuscated assembly
-x86_64-linux-gnu-gcc "${BINARY}".c -nostdlib -o "${BINARY}"
+RESUME_DIRECTORY="resume-directory"
+BINARY="add-or-shift"
+
+# Produce assembly
+gcc -masm=intel -O1 -fno-inline -fno-asynchronous-unwind-tables -fno-exceptions -no-pie "${BINARY}".c -nostdlib -S -o "${BINARY}".S
+
+# Compile
+gcc -O1 -fno-inline -no-pie "${BINARY}".c -nostdlib -o "${BINARY}"
+FUNCTION="local_0x$(address_of add-or-shift add_or_shift):Code_x86_64"
 
 # Lift the binary with revng
-# revng artifact --debug-log=detect-stack-size --resume="${RESUME_DIRECTORY}" --analyze cleanup-ir -o /dev/null "${BINARY}"
-revng artifact cleanup-ir --debug-log=detect-stack-size --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
+revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
 
 # Extract the cleaned up LLVM IR.
 # At this stage the obfuscation is still present
-cat "${RESUME_DIRECTORY}"/cleanup-ir/module.ll | \
-  # unpack the IR
-  zstd -d | \
+zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
   # extract the function we want, and some of its surrounding
   llvm-extract --func="${FUNCTION}" -S | \
   grep define -A 1000000 | grep -B 10000 '^}' | \
@@ -39,9 +39,7 @@ cat "${RESUME_DIRECTORY}"/cleanup-ir/module.ll | \
 # Apply -O2 optimization pipeline.
 # This triggers inlining, constant propagation, and CFG simplification to remove
 # dead branches, resulting in deobfuscated code.
-cat "${RESUME_DIRECTORY}"/cleanup-ir/module.ll | \
-  # unpack the IR
-  zstd -d | \
+zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
   # run O2 optimization pipeline, to deobfuscate the branch
   revng opt --enable-new-pm=true -O2 | \
   # extract the function we want, and some of its surrounding

@@ -1,0 +1,26 @@
+set -euo pipefail
+
+# If we're in an `orc shell`, use orchestra-provided clang
+if test -n "${ORCHESTRA_ROOT:-}"; then
+    CLANG="${ORCHESTRA_ROOT}/link-only/bin/clang"
+    LLVM_CONFIG="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/llvm-config"
+    LLVM_LINK="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/llvm-link"
+    OPT="${ORCHESTRA_ROOT}/lib64/llvm/clang-release/bin/opt"
+else
+    CLANG=clang-16
+    LLVM_CONFIG=llvm-config-16
+    LLVM_LINK=llvm-link-16
+    OPT=opt-16
+fi
+
+function address_of() {
+    PROGRAM="$1"
+    FUNCTION="$2"
+    readelf -s "$PROGRAM" | grep '\b'"$FUNCTION"'\b' | awk '{ print $2 }' | sed 's/^0*//'
+}
+
+function pretty_llvm() {
+    sed 's/, align .*//; s/; pred.*//' | \
+        grep -A100 define | \
+        grep -B100 '^}'
+}

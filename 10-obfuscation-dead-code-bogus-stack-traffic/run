@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-RESUME_DIRECTORY="resume-directory"
-BINARY="sum42"
-
-set -euo pipefail
+source "${SCRIPT_DIR}/../common"
 
 cd "$SCRIPT_DIR"
 
+RESUME_DIRECTORY="resume-directory"
+BINARY="sum42"
+
 # Compile the obfuscated assembly
-x86_64-linux-gnu-gcc "${BINARY}".S -nostdlib -o "${BINARY}"
+gcc -no-pie -masm=intel "${BINARY}".S -nostdlib -o "${BINARY}"
 
 # Lift the binary with revng
-# revng artifact --debug-log=detect-stack-size --resume="${RESUME_DIRECTORY}" --analyze cleanup-ir -o /dev/null "${BINARY}"
-revng artifact cleanup-ir --debug-log=detect-stack-size --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
+revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyze
 
 # Extract LLVM IR at different stages of the decompilation pipeline, to show the
 # dead code and bogus stack traffic is gradually optimized away by the default
 # revng decompilation pipeline.
-./extract "local_0x4002a4:Code_x86_64" "${RESUME_DIRECTORY}"
-
+./extract "local_0x$(address_of "${BINARY}" _start):Code_x86_64" "${RESUME_DIRECTORY}"

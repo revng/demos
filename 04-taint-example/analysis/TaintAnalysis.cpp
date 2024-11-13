@@ -16,6 +16,7 @@ public:
     std::queue<Use *> Queue;
     std::set<Use *> Tainted;
 
+    // Lambda to taint uses
     auto TaintUses = [&](Value *V) {
       for (Use &U : V->uses()) {
         bool New = Tainted.insert(&U).second;
@@ -55,8 +56,9 @@ public:
 
           // Handle well-known functions
           if (Index == 1 and
-              (CalleeName == "local_strcat_" or CalleeName == "local_memcpy_" or
-               CalleeName == "local_strcpy_")) {
+              (CalleeName == "local_strcat_"
+               or CalleeName == "local_memcpy_"
+               or CalleeName == "local_strcpy_")) {
             // Propagate from second argument to the first...
             TaintUses(Call->getArgOperand(0));
 
@@ -68,6 +70,7 @@ public:
             llvm::dbgs() << "The result of get_location is used in a call to "
                          << "send\n";
             Call->dump();
+            return PreservedAnalyses::none();
           }
 
         }

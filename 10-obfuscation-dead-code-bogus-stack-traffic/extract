@@ -8,18 +8,16 @@ RESUME="$2"
 function extract() {
   STEP="$1"
   FUNC="$2"
-  cat "${RESUME}"/"${STEP}"/module.ll | \
-    # unpack the IR
-    zstd -d | \
-    # make very minimal cleanup on it
+  zstdcat "${RESUME}"/"${STEP}"/module.bc.zstd | \
+    # Make very minimal cleanup on it
     revng opt --enable-new-pm=true -O0 | \
-    revng opt -sroa | \
-    revng opt -dse | \
-    revng opt -dce | \
-    # extract the function we want, and some of its surrounding
+    revng opt -sroa -dse -dce -simplifycfg -S  | \
+    # Remove calls to newpc
+    grep -v newpc | \
+    # Extract the function we want, and some of its surrounding
     llvm-extract --func="$FUNC" -S | \
     grep define -A 1000000 | grep -B 10000 '^}' | \
-    # remove noisy stuff to make the output more terse for demo purpose
+    # Remove noisy stuff to make the output more terse for demo purpose
     # all the cleanup below here can be skipped
     grep -v newFuncRoot: | \
     sed 's/\(define.*)\).*/\1 {/' | \
@@ -30,9 +28,8 @@ function extract() {
     sed 's|, "\*m,~{.*||'
 }
 
-extract lift root > 1.ll
-extract isolate "${FUNCTION}" > 2.ll
-extract enforce-abi "${FUNCTION}" > 3.ll
-extract segregate-stack-accesses "${FUNCTION}" > 4.ll
-extract cleanup-ir "${FUNCTION}" > 5.ll
-
+extract lift root > 1-lift.ll
+extract isolate "${FUNCTION}" > 2-isolate.ll
+extract enforce-abi "${FUNCTION}" > 3-enforce-abi.ll
+extract segregate-stack-accesses "${FUNCTION}" > 4-segregate-stack-accesses.ll
+extract cleanup-ir "${FUNCTION}" > 5-cleanup-ir.ll

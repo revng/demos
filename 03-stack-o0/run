@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
-set -euo pipefail
+source "${SCRIPT_DIR}/../common"
 
 cd "$SCRIPT_DIR"
 
-clang-16 -fno-stack-protector source.c -o binary
+"${CLANG}" -fno-stack-protector source.c -o binary
 
 rm -rf resume/
 revng \
