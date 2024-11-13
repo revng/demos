@@ -10,8 +10,8 @@ function extract() {
   STEP="$1"
   FUNC="$2"
   zstdcat "${RESUME}"/"${STEP}"/module.bc.zstd | \
-    # Make very minimal cleanup on it
-    revng opt -sroa -dse -dce -simplifycfg | \
+    # Make very minimal cleanup on it with off-the-shelf LLVM passes
+    "${OPT}" --enable-new-pm=false -sroa -dse -dce -simplifycfg | \
     # Extract the function we want, and some of its surrounding
     "${LLVM_EXTRACT}" --func="$FUNC" -S | \
     grep define -A 10000 | grep -B 10000 '^}' | \

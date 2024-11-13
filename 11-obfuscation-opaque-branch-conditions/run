@@ -19,40 +19,37 @@ FUNCTION="local_0x$(address_of add-or-shift add_or_shift):Code_x86_64"
 rm -rf "${RESUME_DIRECTORY}"
 revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
 
-# Extract the cleaned up LLVM IR.
-# At this stage the obfuscation is still present
-zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
+function extract_the_function() {
   # extract the function we want, and some of its surrounding
   "${LLVM_EXTRACT}" --func="${FUNCTION}" -S | \
-  grep define -A 1000000 | grep -B 10000 '^}' | \
+  grep define -A 10000 | grep -B 10000 '^}' | \
   # remove noisy stuff to make the output more terse for demo purpose
   # all the cleanup below here can be skipped
   grep -v newFuncRoot: | \
   sed 's/\(define.*)\).*/\1 {/' | \
   sed 's/, align.*//' | \
   sed 's/, !.*//' | \
-  sed 's|call .*newpc(.*"revng.const.\([^"]*\)".*).*|call @newpc("\1")|' |
-  sed 's/: *; preds.*/:/' | \
-  sed 's|, "\*m,~{.*||' \
-  > obfuscated.ll
+  sed 's/: *; preds.*/:/' \
 
+}
+
+# Extract the cleaned up LLVM IR.
+# At this stage the obfuscation is still present
+zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
+  extract_the_function > obfuscated.ll
 
 # Apply -O2 optimization pipeline.
 # This triggers inlining, constant propagation, and CFG simplification to remove
 # dead branches, resulting in deobfuscated code.
 zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
   # run O2 optimization pipeline, to deobfuscate the branch
-  revng opt --enable-new-pm=true -O2 | \
-  # extract the function we want, and some of its surrounding
-  "${LLVM_EXTRACT}" --func="${FUNCTION}" -S | \
-  grep define -A 1000000 | grep -B 10000 '^}' | \
-  # remove noisy stuff to make the output more terse for demo purpose
-  # all the cleanup below here can be skipped
-  grep -v newFuncRoot: | \
-  sed 's/\(define.*)\).*/\1 {/' | \
-  sed 's/, align.*//' | \
-  sed 's/, !.*//' | \
-  sed 's|call .*newpc(.*"revng.const.\([^"]*\)".*).*|call @newpc("\1")|' |
-  sed 's/: *; preds.*/:/' | \
-  sed 's|, "\*m,~{.*||' \
-  > deobfuscated.ll
+  "${OPT}" -O2 | \
+  extract_the_function > deobfuscated.ll
+
+echo ""
+echo "Obfuscated"
+cat obfuscated.ll
+
+echo ""
+echo "Deobfuscated"
+cat deobfuscated.ll

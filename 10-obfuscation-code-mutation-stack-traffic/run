@@ -25,5 +25,5 @@ echo "Obfuscated"
 cat 3-enforce-abi.ll
 
 echo ""
-echo "Debfuscated"
+echo "Deobfuscated"
 cat 5-cleanup-ir.ll
