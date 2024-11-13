@@ -5,9 +5,16 @@ source "${SCRIPT_DIR}/../common"
 
 cd "$SCRIPT_DIR"
 
-FUNCTION="local_make_http_request"
+RESUME_DIRECTORY="resume-directory"
+BINARY="calc-x86-64-static"
 
-rm -rf *flattened.ll
+# Get the example binary
+rm -rf "${BINARY}"
+wget https://rev.ng/downloads/"${BINARY}"
+
+# Lift the binary with revng
+rm -rf "${RESUME_DIRECTORY}"
+revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
 
 # Build the CFG flattening pass
 g++ \
@@ -19,15 +26,32 @@ g++ \
     $("${LLVM_CONFIG}" --cxxflags --ldflags) \
     -g
 
-for I in $(seq 0 2) ; do
-  "${OPT}" function${I}.ll \
-           -load="analysis/libCFGFlatteningPass.so" \
-           -enable-new-pm=false --flatten-cfg \
-           -S -o function${I}-flattened.ll
-  "${OPT}" function${I}-flattened.ll \
-           --enable-new-pm=false \
-           --jump-threading \
-           --jump-threading-across-loop-headers \
-           --jump-threading-threshold=10000000 \
-           -o function${I}-unflattened.ll
-done
+function extract_the_function() {
+  FUNCTION="$1"
+  # extract the function we want, and some of its surrounding
+  extract_llvm_function "${FUNCTION}" -S | \
+  # remove noisy stuff to make the output more terse for demo purpose
+  # all the cleanup below here can be skipped
+  pretty_llvm | \
+  grep -v newFuncRoot: | \
+  grep -v newpc
+}
+
+# Extract only the functions we want to look at for the demo
+zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
+  "${LLVM_EXTRACT}" --func="local_0x404050:Code_x86_64" \
+                    --func="local_0x401185:Code_x86_64" \
+                    --func="local_0x401fb3:Code_x86_64" \
+  > original.ll
+
+"${OPT}" original.ll \
+         -load="analysis/libCFGFlatteningPass.so" \
+         -enable-new-pm=false --flatten-cfg \
+         -S -o flattened.ll
+
+"${OPT}" flattened.ll \
+         --enable-new-pm=false \
+         --jump-threading \
+         --jump-threading-across-loop-headers \
+         --jump-threading-threshold=10000000 \
+         -o unflattened.ll

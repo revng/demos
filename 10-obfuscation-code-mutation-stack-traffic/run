@@ -21,9 +21,15 @@ revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}
 ./extract "local_0x$(address_of "${BINARY}" _start):Code_x86_64" "${RESUME_DIRECTORY}"
 
 echo ""
+echo "=========="
 echo "Obfuscated"
+echo "=========="
+echo ""
 cat 3-enforce-abi.ll
 
 echo ""
+echo "============"
 echo "Deobfuscated"
+echo "============"
+echo ""
 cat 5-cleanup-ir.ll

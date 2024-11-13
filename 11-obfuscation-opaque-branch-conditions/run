@@ -13,24 +13,20 @@ gcc -masm=intel -O1 -fno-inline -fno-asynchronous-unwind-tables -fno-exceptions 
 
 # Compile
 gcc -O1 -fno-inline -no-pie "${BINARY}".c -nostdlib -o "${BINARY}"
-FUNCTION="local_0x$(address_of add-or-shift add_or_shift):Code_x86_64"
+FUNCTION="local_0x$(address_of "${BINARY}" add_or_shift):Code_x86_64"
 
 # Lift the binary with revng
 rm -rf "${RESUME_DIRECTORY}"
 revng artifact cleanup-ir --resume="${RESUME_DIRECTORY}" -o /dev/null "${BINARY}" --analyses=revng-initial-auto-analysis,revng-c-initial-auto-analysis
 
 function extract_the_function() {
-  # extract the function we want, and some of its surrounding
-  "${LLVM_EXTRACT}" --func="${FUNCTION}" -S | \
-  grep define -A 10000 | grep -B 10000 '^}' | \
+  # extract the function we want
+  extract_llvm_function "${FUNCTION}" | \
   # remove noisy stuff to make the output more terse for demo purpose
   # all the cleanup below here can be skipped
-  grep -v newFuncRoot: | \
-  sed 's/\(define.*)\).*/\1 {/' | \
-  sed 's/, align.*//' | \
-  sed 's/, !.*//' | \
-  sed 's/: *; preds.*/:/' \
-
+  pretty_llvm | \
+  grep -v newpc | \
+  grep -v newFuncRoot:
 }
 
 # Extract the cleaned up LLVM IR.
@@ -47,9 +43,15 @@ zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
   extract_the_function > deobfuscated.ll
 
 echo ""
+echo "=========="
 echo "Obfuscated"
+echo "=========="
+echo ""
 cat obfuscated.ll
 
 echo ""
+echo "=========="
 echo "Deobfuscated"
+echo "=========="
+echo ""
 cat deobfuscated.ll

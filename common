@@ -21,8 +21,17 @@ function address_of() {
     readelf -s "$PROGRAM" | grep '\b'"$FUNCTION"'\b' | awk '{ print $2 }' | sed 's/^0*//'
 }
 
+function extract_llvm_function() {
+  FUNCTION="$1"
+  # extract the function we want in text format
+  "${LLVM_EXTRACT}" --func="${FUNCTION}" -S | \
+  grep define -A 1000000 | \
+  grep -B 1000000 '^}'
+}
+
 function pretty_llvm() {
-    sed 's/, align .*//; s/; pred.*//' | \
-        grep -A100 define | \
-        grep -B100 '^}'
+  sed 's/, align.*//' | \
+  sed 's/\(define.*)\).*/\1 {/' | \
+  sed 's/, !.*//' | \
+  sed 's/: *; preds.*/:/'
 }

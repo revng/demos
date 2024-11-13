@@ -12,8 +12,16 @@ cd "$SCRIPT_DIR"
     hello.c \
     -o hello.ll
 
+echo ""
+echo "======="
 echo "Vanilla"
-cat hello.ll | pretty_llvm
+echo "======="
+echo ""
+cat hello.ll | extract_llvm_function call_a_or_b | pretty_llvm
 
+echo ""
+echo "========="
 echo "Optimized"
-"${OPT}" -O2 hello.ll -S | pretty_llvm
+echo "========="
+echo ""
+"${OPT}" -O2 hello.ll -S | extract_llvm_function call_a_or_b | pretty_llvm

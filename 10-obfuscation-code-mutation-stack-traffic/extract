@@ -12,17 +12,13 @@ function extract() {
   zstdcat "${RESUME}"/"${STEP}"/module.bc.zstd | \
     # Make very minimal cleanup on it with off-the-shelf LLVM passes
     "${OPT}" --enable-new-pm=false -sroa -dse -dce -simplifycfg | \
-    # Extract the function we want, and some of its surrounding
-    "${LLVM_EXTRACT}" --func="$FUNC" -S | \
-    grep define -A 10000 | grep -B 10000 '^}' | \
+    # Extract the function we want
+    extract_llvm_function "$FUNC" | \
     # Remove noisy stuff to make the output more terse for demo purpose
     # all the cleanup below here can be skipped
+    pretty_llvm | \
     grep -v newpc | \
-    grep -v newFuncRoot: | \
-    sed 's/\(define.*)\).*/\1 {/' | \
-    sed 's/, align.*//' | \
-    sed 's/, !.*//' | \
-    sed 's/: *; preds.*/:/'
+    grep -v newFuncRoot:
 }
 
 extract lift root > 1-lift.ll
