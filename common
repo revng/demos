@@ -32,7 +32,7 @@ function extract_llvm_function() {
 function pretty_llvm() {
   sed 's/, align.*//' | \
   sed 's/\(define.*)\).*/\1 {/' | \
-  sed 's/, !.*//' | \
+  sed 's/, !dbg.*//' | \
   sed 's/: *; preds.*/:/' | \
   grep -v newpc
 }
