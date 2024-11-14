@@ -1,12 +1,9 @@
-int a(int);
-int b(int);
-
-int call_a_or_b(int call_a, int argument) {
+int add_1_or_2(int add_1, int argument) {
   int result;
-  if (call_a) {
-    result = a(argument) + 1;
+  if (add_1) {
+    result = argument + 1;
   } else {
-    result = b(argument) + 2;
+    result = argument + 2;
   }
   return result;
 }

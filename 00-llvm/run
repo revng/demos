@@ -17,11 +17,11 @@ echo "======="
 echo "Vanilla"
 echo "======="
 echo ""
-cat hello.ll | extract_llvm_function call_a_or_b | pretty_llvm
+cat hello.ll | extract_llvm_function add_1_or_2 | pretty_llvm
 
 echo ""
 echo "========="
 echo "Optimized"
 echo "========="
 echo ""
-"${OPT}" -O2 hello.ll -S | extract_llvm_function call_a_or_b | pretty_llvm
+"${OPT}" -O2 hello.ll -S | extract_llvm_function add_1_or_2 | pretty_llvm

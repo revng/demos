@@ -34,6 +34,9 @@ function pretty_llvm() {
   sed 's/\(define.*)\).*/\1 {/' | \
   sed 's/, !dbg.*//' | \
   sed 's/: *; preds.*/:/' | \
+  sed 's/ nsw//g' | \
+  sed 's/ dso_local//g' | \
+  sed 's/ noundef//g' | \
   grep -v newpc
 }
 
