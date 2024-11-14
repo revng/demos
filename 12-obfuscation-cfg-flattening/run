@@ -26,11 +26,11 @@ g++ \
     $("${LLVM_CONFIG}" --cxxflags --ldflags) \
     -g
 
-# Extract only the functions we want to look at for the demo
+# Extract only the function we want to look at for the demo.
+# For a simpler one use --func="local_0x404050:Code_x86_64"
+# For a larger one use --func="local_0x401fb3:Code_x86_64"
 zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
-  "${LLVM_EXTRACT}" --func="local_0x404050:Code_x86_64" \
-                      --func="local_0x401185:Code_x86_64" \
-                      --func="local_0x401fb3:Code_x86_64" | \
+  "${LLVM_EXTRACT}" --func="local_0x401185:Code_x86_64" | \
   "${OPT}" -passes=strip -S -o original.ll
 
 "${OPT}" original.ll \
