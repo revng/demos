@@ -26,23 +26,12 @@ g++ \
     $("${LLVM_CONFIG}" --cxxflags --ldflags) \
     -g
 
-function extract_the_function() {
-  FUNCTION="$1"
-  # extract the function we want, and some of its surrounding
-  extract_llvm_function "${FUNCTION}" -S | \
-  # remove noisy stuff to make the output more terse for demo purpose
-  # all the cleanup below here can be skipped
-  pretty_llvm | \
-  grep -v newFuncRoot: | \
-  grep -v newpc
-}
-
 # Extract only the functions we want to look at for the demo
 zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
   "${LLVM_EXTRACT}" --func="local_0x404050:Code_x86_64" \
-                    --func="local_0x401185:Code_x86_64" \
-                    --func="local_0x401fb3:Code_x86_64" \
-  > original.ll
+                      --func="local_0x401185:Code_x86_64" \
+                      --func="local_0x401fb3:Code_x86_64" | \
+  "${OPT}" -passes=strip -S -o original.ll
 
 "${OPT}" original.ll \
          -load="analysis/libCFGFlatteningPass.so" \
@@ -53,5 +42,4 @@ zstdcat "${RESUME_DIRECTORY}"/cleanup-ir/module.bc.zstd | \
          --enable-new-pm=false \
          --jump-threading \
          --jump-threading-across-loop-headers \
-         --jump-threading-threshold=10000000 \
          -o unflattened.ll

@@ -17,7 +17,6 @@ function extract() {
     # Remove noisy stuff to make the output more terse for demo purpose
     # all the cleanup below here can be skipped
     pretty_llvm | \
-    grep -v newpc | \
     grep -v newFuncRoot:
 }
 
