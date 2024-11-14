@@ -11,7 +11,7 @@ function extract() {
   FUNC="$2"
   zstdcat "${RESUME}"/"${STEP}"/module.bc.zstd | \
     # Make very minimal cleanup on it with off-the-shelf LLVM passes
-    "${OPT}" --enable-new-pm=false -sroa -dse -dce -simplifycfg | \
+    "${OPT}" --enable-new-pm=false -dse | \
     # Extract the function we want
     extract_llvm_function "$FUNC" | \
     # Remove noisy stuff to make the output more terse for demo purpose
