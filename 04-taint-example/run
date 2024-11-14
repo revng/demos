@@ -16,8 +16,9 @@ revng \
     binary \
     --debug-names \
     --resume resume \
-    -o /dev/null \
-    --progress
+    --progress | \
+    zstdcat | \
+    opt -S > module.ll
 
 g++ \
     -o "analysis/libTaintAnalysis.so" \
@@ -28,8 +29,8 @@ g++ \
     $("${LLVM_CONFIG}" --cxxflags --ldflags) \
     -g
 
-zstdcat resume/cleanup-ir/module.bc.zstd | \
-    "${OPT}" \
+"${OPT}" \
     -load-pass-plugin="analysis/libTaintAnalysis.so" \
     -passes="TaintAnalysis" \
+    module.ll \
     -o /dev/null

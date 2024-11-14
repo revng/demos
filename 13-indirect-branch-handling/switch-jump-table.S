@@ -1,15 +1,7 @@
-#
-# This file is distributed under the MIT License. See LICENSE.md for details.
-#
-
     .intel_syntax noprefix
     .type myfunc, @function
     .globl myfunc
 myfunc:
-    # We're introducing this (mov and cmp) addition to facilitate testing of the
-    # SimplifySwitch Pass, as AdvancedValueInfo currently struggles with
-    # accurately tracking arguments. Generally, this addition is expected to
-    # become obsolete once the handling of arguments is enhanced.
     mov    rax, QWORD PTR [rax]
     cmp    rax, 0x5
     ja     end
@@ -32,7 +24,6 @@ five:
 end:
     ret
 
-    .intel_syntax noprefix
     .type _start, @function
     .globl _start
 _start:
