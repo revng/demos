@@ -18,7 +18,7 @@ revng \
     --resume resume \
     --progress | \
     zstdcat | \
-    opt -S > module.ll
+    "${OPT}" -S > module.ll
 
 g++ \
     -o "analysis/libTaintAnalysis.so" \

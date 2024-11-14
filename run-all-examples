@@ -8,5 +8,5 @@ for EXAMPLE in $(find -mindepth 1 -maxdepth 1 -type d -regex '\./[0-9]+-.*' | so
     echo "Running example $EXAMPLE" >&2
     pushd "$EXAMPLE" >& /dev/null
     ./run
-    popd
+    popd >& /dev/null
 done
