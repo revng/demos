@@ -21,6 +21,8 @@ RUN apt-get update -y && \
       nano \
       ninja-build \
       python3-pip \
+      python3.11 \
+      python3.11-venv \
       wget \
       zlib1g-dev \
       zstd \
@@ -55,13 +57,6 @@ RUN mkdir /klee && \
     rm -rf /klee/klee
 
 ENV PATH="${PATH}:/klee/bin"
-
-# Install CodeQL
-RUN cd / && \
-    wget -q 'https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.17.5/codeql-bundle-linux64.tar.gz' && \
-    tar xaf codeql-bundle-linux64.tar.gz && \
-    rm -f codeql-bundle-linux64.tar.gz
-ENV PATH="${PATH}:/codeql"
 
 # Install rev.ng
 RUN cd / && curl -L -s 'https://rev.ng/downloads/revng-distributable/'"$REVNG_BRANCH"'/install.sh' | bash

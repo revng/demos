@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/../common"
+
+cd "$SCRIPT_DIR"
+
+# TODO: make this script work out of the container
+# TODO: remove the binary in favor of building it from source
+
+# Make llvm-config available
+ln -s $(which $(which "$LLVM_CONFIG")) llvm-config
+export PATH="$PWD:$PATH"
+
+# Disable fetching debug info
+export REVNG_OPTIONS="--debug-info=no"
+
+python3.11 -m venv venv
+source venv/bin/activate
+pip install revng ipython
+
+# export OPENAI_API_KEY="..."
+
+./script.py
