@@ -9,6 +9,7 @@ cd "$SCRIPT_DIR"
 # TODO: remove the binary in favor of building it from source
 
 # Make llvm-config available
+rm -f llvm-config
 ln -s $(which $(which "$LLVM_CONFIG")) llvm-config
 export PATH="$PWD:$PATH"
 
