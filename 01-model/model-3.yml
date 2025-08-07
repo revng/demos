@@ -11,7 +11,7 @@ Segments:
     IsExecutable:    true
 Functions:
   - Entry:           "0x400000:Code_x86_64"
-    CustomName: sum
+    Name: sum
     Prototype:
       Kind: DefinedType
       Definition: "/TypeDefinitions/1-CABIFunctionDefinition"
@@ -21,13 +21,13 @@ TypeDefinitions:
     ID: 1
     Arguments:
       - Index: 0
-        CustomName: first_addend
+        Name: first_addend
         Type:
           Kind: PrimitiveType
           PrimitiveKind: Unsigned
           Size: 8
       - Index: 1
-        CustomName: second_addend
+        Name: second_addend
         Type:
           Kind: PrimitiveType
           PrimitiveKind: Unsigned
